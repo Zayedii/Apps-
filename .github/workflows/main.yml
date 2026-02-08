@@ -1,0 +1,36 @@
+name: Sign iOS App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Import certificate
+      uses: apple-actions/import-codesign-certs@v1
+      with:
+        p12-base64: ${{ secrets.CERT_P12 }}
+        p12-password: ${{ secrets.CERT_PASSWORD }}
+        provisioning-profile-base64: ${{ secrets.PROVISION_PROFILE }}
+
+    - name: Build and sign IPA
+      run: |
+        xcodebuild -workspace YourApp.xcworkspace \
+                   -scheme YourApp \
+                   -sdk iphoneos \
+                   -configuration Release \
+                   -archivePath $PWD/build/YourApp.xcarchive archive
+
+        xcodebuild -exportArchive \
+                   -archivePath $PWD/build/YourApp.xcarchive \
+                   -exportOptionsPlist exportOptions.plist \
+                   -exportPath $PWD/build
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v3
+      with:
+        name: Signed-IPA
+        path: build/resigned.ipa
